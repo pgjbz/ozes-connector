@@ -6,10 +6,7 @@ pub type OzesResult<T> = Result<T, OzesConnectorError>;
 pub enum OzesConnectorError {
     TimeOut,
     WithouConnection,
-    ErrorResponse,
     UnknownError(String),
-    ToLongMessage,
-    AddrInUse,
     PermissionDenied,
     Refused,
     Reseted,
@@ -21,7 +18,6 @@ impl From<std::io::Error> for OzesConnectorError {
         match e.kind() {
             ErrorKind::BrokenPipe => Self::WithouConnection,
             ErrorKind::TimedOut => Self::TimeOut,
-            ErrorKind::AddrInUse => Self::AddrInUse,
             ErrorKind::PermissionDenied => Self::PermissionDenied,
             ErrorKind::ConnectionReset => Self::Reseted,
             ErrorKind::ConnectionRefused => Self::Refused,
@@ -32,7 +28,19 @@ impl From<std::io::Error> for OzesConnectorError {
 
 impl std::fmt::Display for OzesConnectorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "foo")
+        let msg = match self {
+            Self::InvalidMessageToServer(msg) => format!(
+                "invalise message {}",
+                String::from_utf8(msg.clone()).unwrap()
+            ),
+            Self::PermissionDenied => "permission denied".to_owned(),
+            Self::Refused => "connection refused".to_owned(),
+            Self::Reseted => "connection reset".to_owned(),
+            Self::TimeOut => "connection time out".to_owned(),
+            Self::WithouConnection => "lose connection".to_owned(),
+            Self::UnknownError(error) => format!("unknown error {}", error),
+        };
+        write!(f, "{}", msg)
     }
 }
 
