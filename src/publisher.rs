@@ -3,7 +3,10 @@ use std::{
     net::TcpStream,
 };
 
-use crate::errors::OzesResult;
+use crate::{
+    errors::{OzesConnectorError, OzesResult},
+    response::Response,
+};
 
 pub struct Publisher<T>
 where
@@ -60,17 +63,11 @@ impl Publisher<TcpStream> {
         let address = format!("{}:{}", builder.host, builder.port);
         let mut stream = TcpStream::connect(address)?;
         stream.write_all(format!("PUBLISHER {};", builder.queue_name).as_bytes())?;
-        let mut buffer = vec![0; 4096];
-        match stream.read(&mut buffer) {
-            Ok(n) => {
-                buffer.truncate(n);
-                if !buffer.starts_with(b"ok") {
-                    Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe))?
-                }
-            }
-            Err(e) => Err(e)?,
+        let mut publihser = Self { stream };
+        match publihser.unwrap_return() {
+            Response::Ok => Ok(publihser),
+            Response::Err { message } => Err(OzesConnectorError::InvalidMessageToServer(message)),
         }
-        Ok(Self { stream })
     }
 }
 
@@ -81,15 +78,27 @@ impl<T: Read + Write> Publisher<T> {
         let message = String::from_utf8(vec).unwrap();
         self.stream
             .write_all(format!("message \"{message}\"").as_bytes())?;
+        match self.unwrap_return() {
+            Response::Ok => Ok(()),
+            Response::Err { message } => Err(OzesConnectorError::InvalidMessageToServer(message)),
+        }
+    }
+
+    pub(crate) fn unwrap_return(&mut self) -> Response {
         let mut buffer = vec![0; 4096];
         match self.stream.read(&mut buffer) {
             Ok(n) => {
                 buffer.truncate(n);
-                println!("{:?}", String::from_utf8(buffer))
+                if !buffer.starts_with(b"ok") {
+                    return Response::Err { message: buffer };
+                }
+                Response::Ok
             }
-            Err(e) => Err(e)?,
+            Err(e) => {
+                buffer.extend_from_slice(e.to_string().as_bytes());
+                Response::Err { message: buffer }
+            }
         }
-        Ok(())
     }
 
     pub fn send_binary(&mut self, message: &[u8]) -> OzesResult<()> {

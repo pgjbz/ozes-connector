@@ -13,6 +13,7 @@ pub enum OzesConnectorError {
     PermissionDenied,
     Refused,
     Reseted,
+    InvalidMessageToServer(Vec<u8>),
 }
 
 impl From<std::io::Error> for OzesConnectorError {
