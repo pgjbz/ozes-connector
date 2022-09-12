@@ -87,7 +87,10 @@ where
         match self.stream.read(&mut buffer) {
             Ok(n) => {
                 buffer.truncate(n);
-                self.stream.write_all(b"ok")?;
+                let mut vec = Vec::with_capacity(8);
+                vec.extend_from_slice(b"ok +l");
+                vec.extend_from_slice(n.to_string().as_bytes());
+                self.stream.write_all(&vec)?;
                 Ok(buffer)
             }
             Err(err) => Err(err)?,

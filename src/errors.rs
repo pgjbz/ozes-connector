@@ -2,7 +2,7 @@ use std::io::ErrorKind;
 
 pub type OzesResult<T> = Result<T, OzesConnectorError>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum OzesConnectorError {
     TimeOut,
     WithouConnection,

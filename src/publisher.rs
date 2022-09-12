@@ -66,16 +66,8 @@ impl Publisher<TcpStream> {
 }
 
 impl<T: Read + Write> Publisher<T> {
-    pub fn send_message(&mut self, message: &[u8]) -> OzesResult<()> {
-        let mut vec = Vec::with_capacity(message.len() + 10);
-        vec.extend_from_slice(b"message \"");
-        vec.extend_from_slice(message);
-        vec.push(b'"');
-        self.stream.write_all(&vec)?;
-        crate::unwrap_return(&mut self.stream)
-    }
 
-    pub fn send_binary(&mut self, message: &[u8]) -> OzesResult<()> {
+    pub fn send_message(&mut self, message: &[u8]) -> OzesResult<()> {
         let mut vec = Vec::with_capacity(message.len() + 9);
         vec.extend_from_slice(b"message #");
         vec.extend_from_slice(message);
@@ -87,24 +79,7 @@ impl<T: Read + Write> Publisher<T> {
 #[cfg(test)]
 mod tests {
 
-    #[allow(unused_imports)]
     use super::*;
-
-    #[test]
-    fn test_send_binary() {
-        let ok_message = b"ok message";
-        let mut read_data = Vec::with_capacity(ok_message.len());
-        read_data.extend_from_slice(ok_message);
-        let mock_tcpstream = MockTcpStream {
-            read_data,
-            write_data: vec![],
-        };
-        let mut publisher = Publisher {
-            stream: mock_tcpstream,
-        };
-        publisher.send_binary(b"hello test").unwrap();
-        assert_eq!(&publisher.stream.write_data, b"message #hello test")
-    }
 
     #[test]
     fn test_send_message() {
