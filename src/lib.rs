@@ -23,6 +23,7 @@ mod tests {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn unwrap_return<T>(stream: &mut T) -> OzesResult<()>
 where
     T: Read,
