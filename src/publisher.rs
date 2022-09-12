@@ -67,20 +67,19 @@ impl Publisher<TcpStream> {
 
 impl<T: Read + Write> Publisher<T> {
     pub fn send_message(&mut self, message: &[u8]) -> OzesResult<()> {
-        let mut vec = Vec::with_capacity(message.len());
+        let mut vec = Vec::with_capacity(message.len() + 10);
+        vec.extend_from_slice(b"message \"");
         vec.extend_from_slice(message);
-        let message = String::from_utf8(vec).unwrap();
-        self.stream
-            .write_all(format!("message \"{message}\"").as_bytes())?;
+        vec.push(b'"');
+        self.stream.write_all(&vec)?;
         crate::unwrap_return(&mut self.stream)
     }
 
     pub fn send_binary(&mut self, message: &[u8]) -> OzesResult<()> {
-        let mut vec = Vec::with_capacity(message.len());
+        let mut vec = Vec::with_capacity(message.len() + 9);
+        vec.extend_from_slice(b"message #");
         vec.extend_from_slice(message);
-        let message = String::from_utf8(vec).unwrap();
-        self.stream
-            .write_all(format!("message #{message}").as_bytes())?;
+        self.stream.write_all(&vec)?;
         crate::unwrap_return(&mut self.stream)
     }
 }
