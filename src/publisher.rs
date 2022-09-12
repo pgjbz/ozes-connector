@@ -3,7 +3,7 @@ use std::{
     net::TcpStream,
 };
 
-use crate::errors::{OzesConnectorError, OzesResult};
+use crate::errors::OzesResult;
 
 pub struct Publisher<T>
 where
@@ -60,9 +60,8 @@ impl Publisher<TcpStream> {
         let address = format!("{}:{}", builder.host, builder.port);
         let mut stream = TcpStream::connect(address)?;
         stream.write_all(format!("PUBLISHER {};", builder.queue_name).as_bytes())?;
-        let mut publihser = Self { stream };
-        publihser.unwrap_return()?;
-        Ok(publihser)
+        crate::unwrap_return(&mut stream)?;
+        Ok(Self { stream })
     }
 }
 
@@ -73,24 +72,7 @@ impl<T: Read + Write> Publisher<T> {
         let message = String::from_utf8(vec).unwrap();
         self.stream
             .write_all(format!("message \"{message}\"").as_bytes())?;
-        self.unwrap_return()
-    }
-
-    pub(crate) fn unwrap_return(&mut self) -> OzesResult<()> {
-        let mut buffer = vec![0; 4096];
-        match self.stream.read(&mut buffer) {
-            Ok(n) => {
-                buffer.truncate(n);
-                if !buffer.starts_with(b"ok") {
-                    return Err(OzesConnectorError::InvalidMessageToServer(buffer));
-                }
-                Ok(())
-            }
-            Err(e) => {
-                buffer.extend_from_slice(e.to_string().as_bytes());
-                Err(OzesConnectorError::InvalidMessageToServer(buffer))
-            }
-        }
+        crate::unwrap_return(&mut self.stream)
     }
 
     pub fn send_binary(&mut self, message: &[u8]) -> OzesResult<()> {
@@ -99,7 +81,7 @@ impl<T: Read + Write> Publisher<T> {
         let message = String::from_utf8(vec).unwrap();
         self.stream
             .write_all(format!("message #{message}").as_bytes())?;
-        self.unwrap_return()
+        crate::unwrap_return(&mut self.stream)
     }
 }
 
