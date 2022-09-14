@@ -10,6 +10,9 @@ pub enum OzesConnectorError {
     PermissionDenied,
     Refused,
     Reseted,
+    InvalidLen(usize),
+    IncompatibleCommand,
+    FailToParseServerMessage(Vec<u8>),
     InvalidMessageToServer(Vec<u8>),
 }
 
@@ -33,12 +36,18 @@ impl std::fmt::Display for OzesConnectorError {
                 "invalise message {}",
                 String::from_utf8(msg.clone()).unwrap()
             ),
+            Self::FailToParseServerMessage(msg) => format!(
+                "fail to parse server message {}",
+                String::from_utf8(msg.clone()).unwrap()
+            ),
             Self::PermissionDenied => "permission denied".to_owned(),
             Self::Refused => "connection refused".to_owned(),
             Self::Reseted => "connection reset".to_owned(),
             Self::TimeOut => "connection time out".to_owned(),
             Self::WithouConnection => "lose connection".to_owned(),
+            Self::InvalidLen(len) => format!("invalid len of message {}", len),
             Self::UnknownError(error) => format!("unknown error {}", error),
+            Self::IncompatibleCommand => "incompatible command are received".to_owned(),
         };
         write!(f, "{}", msg)
     }

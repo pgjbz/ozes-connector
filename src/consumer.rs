@@ -3,7 +3,10 @@ use std::{
     net::TcpStream,
 };
 
-use crate::errors::OzesResult;
+use bytes::Bytes;
+use ozes_parser::parser::{self, Command};
+
+use crate::errors::{OzesConnectorError, OzesResult};
 
 pub type ConsumerClient = Consumer<TcpStream>;
 
@@ -87,11 +90,28 @@ where
         match self.stream.read(&mut buffer) {
             Ok(n) => {
                 buffer.truncate(n);
-                let mut vec = Vec::with_capacity(8);
-                vec.extend_from_slice(b"ok +l");
-                vec.extend_from_slice(n.to_string().as_bytes());
-                self.stream.write_all(&vec)?;
-                Ok(buffer)
+                match parser::parse(Bytes::copy_from_slice(&buffer[..])) {
+                    Ok(cmds) => match &cmds[..] {
+                        [Command::Message { message, len }] => {
+                            if *len != n {
+                                self.stream.write_all(b"error")?;
+                                Err(OzesConnectorError::InvalidLen(n))?;
+                            }
+                            let mut vec = Vec::with_capacity(8);
+                            vec.extend_from_slice(b"ok +l");
+                            vec.extend_from_slice(n.to_string().as_bytes());
+                            self.stream.write_all(&vec)?;
+                            Ok(Vec::from(&message[..]))
+                        }
+                        _ => {
+                            self.stream.write_all(b"error")?;
+                            Err(OzesConnectorError::IncompatibleCommand)?
+                        }
+                    },
+                    Err(e) => Err(OzesConnectorError::FailToParseServerMessage(
+                        e.to_string().into_bytes(),
+                    ))?,
+                }
             }
             Err(err) => Err(err)?,
         }
@@ -106,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_read_message() {
-        let ok_message = b"uou message";
+        let ok_message = b"+l17 #uou message";
         let mut read_data = Vec::with_capacity(ok_message.len());
         read_data.extend_from_slice(ok_message);
         let mock_tcpstream = MockTcpStream {
@@ -119,11 +139,11 @@ mod tests {
         };
         consumer.read_message().unwrap();
         assert_eq!(
-            &consumer.stream.write_data, b"ok +l11",
+            &consumer.stream.write_data, b"ok +l17",
             "expected write ok message"
         );
         assert_eq!(
-            &consumer.stream.read_data, b"uou message",
+            &consumer.stream.read_data, b"+l17 #uou message",
             "expected read \"uou message\""
         );
         assert_eq!(

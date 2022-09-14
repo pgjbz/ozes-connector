@@ -3,9 +3,9 @@ use std::io::Read;
 use errors::{OzesConnectorError, OzesResult};
 
 pub mod errors;
-//#[cfg(feature = "publisher")]
+#[cfg(feature = "publisher")]
 pub mod publisher;
-//#[cfg(feature = "consumer")]
+#[cfg(feature = "consumer")]
 pub mod consumer;
 
 pub fn add(left: usize, right: usize) -> usize {
