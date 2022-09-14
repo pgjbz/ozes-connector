@@ -66,7 +66,6 @@ impl Publisher<TcpStream> {
 }
 
 impl<T: Read + Write> Publisher<T> {
-
     pub fn send_message(&mut self, message: &[u8]) -> OzesResult<()> {
         let mut vec = Vec::with_capacity(message.len() + 9);
         vec.extend_from_slice(b"message #");
@@ -94,7 +93,7 @@ mod tests {
             stream: mock_tcpstream,
         };
         publisher.send_message(b"hello test").unwrap();
-        assert_eq!(&publisher.stream.write_data, b"message \"hello test\"")
+        assert_eq!(&publisher.stream.write_data, b"message #hello test")
     }
 
     #[derive(Default)]

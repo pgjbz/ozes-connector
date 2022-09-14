@@ -118,9 +118,18 @@ mod tests {
             stream: mock_tcpstream,
         };
         consumer.read_message().unwrap();
-        assert_eq!(&consumer.stream.write_data, b"ok", "expected write ok message");
-        assert_eq!(&consumer.stream.read_data, b"uou message", "expected read \"uou message\"");
-        assert_eq!(consumer.stream.write_calls, 1, "expected only one call to write");
+        assert_eq!(
+            &consumer.stream.write_data, b"ok +l11",
+            "expected write ok message"
+        );
+        assert_eq!(
+            &consumer.stream.read_data, b"uou message",
+            "expected read \"uou message\""
+        );
+        assert_eq!(
+            consumer.stream.write_calls, 1,
+            "expected only one call to write"
+        );
     }
 
     #[derive(Default)]
