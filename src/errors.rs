@@ -33,7 +33,7 @@ impl std::fmt::Display for OzesConnectorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let msg = match self {
             Self::InvalidMessageToServer(msg) => format!(
-                "invalise message {}",
+                "invalide message {}",
                 String::from_utf8(msg.clone()).unwrap()
             ),
             Self::FailToParseServerMessage(msg) => format!(

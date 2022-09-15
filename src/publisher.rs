@@ -3,7 +3,7 @@ use std::{
     net::TcpStream,
 };
 
-use crate::errors::OzesResult;
+use crate::{errors::OzesResult, BASE_MESSAGE_LEN};
 
 pub struct Publisher<T>
 where
@@ -67,11 +67,21 @@ impl Publisher<TcpStream> {
 
 impl<T: Read + Write> Publisher<T> {
     pub fn send_message(&mut self, message: &[u8]) -> OzesResult<()> {
-        let mut vec = Vec::with_capacity(message.len() + 9);
-        vec.extend_from_slice(b"message #");
-        vec.extend_from_slice(message);
+        let vec = self.build_final_message(message);
         self.stream.write_all(&vec)?;
         crate::unwrap_return(&mut self.stream)
+    }
+
+    fn build_final_message(&self, message: &[u8]) -> Vec<u8> {
+        let message_len = message.len();
+        let message_len_size = crate::number_len(message_len);
+        let total_len = message_len + BASE_MESSAGE_LEN + message_len_size;
+        let mut vec = Vec::with_capacity(total_len);
+        vec.extend_from_slice(b"message +l");
+        vec.extend_from_slice(total_len.to_string().as_bytes());
+        vec.extend_from_slice(b" #");
+        vec.extend_from_slice(message);
+        vec
     }
 }
 
@@ -93,7 +103,7 @@ mod tests {
             stream: mock_tcpstream,
         };
         publisher.send_message(b"hello test").unwrap();
-        assert_eq!(&publisher.stream.write_data, b"message #hello test")
+        assert_eq!(&publisher.stream.write_data, b"message +l24 #hello test")
     }
 
     #[derive(Default)]

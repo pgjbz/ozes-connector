@@ -2,14 +2,16 @@ use std::io::Read;
 
 use errors::{OzesConnectorError, OzesResult};
 
+#[cfg(feature = "consumer")]
+pub mod consumer;
 pub mod errors;
 #[cfg(feature = "publisher")]
 pub mod publisher;
-#[cfg(feature = "consumer")]
-pub mod consumer;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+const BASE_MESSAGE_LEN: usize = "message +l #".len();
+
+pub(crate) fn number_len(number: usize) -> usize {
+    number.to_string().len()
 }
 
 #[allow(dead_code)]
